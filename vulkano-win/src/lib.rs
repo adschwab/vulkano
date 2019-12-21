@@ -12,7 +12,7 @@ use vulkano::instance::Instance;
 use vulkano::instance::InstanceExtensions;
 use vulkano::swapchain::Surface;
 use vulkano::swapchain::SurfaceCreationError;
-use winit::{EventsLoop, WindowBuilder};
+use winit::{EventLoop, WindowBuilder};
 use winit::CreationError as WindowCreationError;
 
 #[cfg(target_os = "macos")]
@@ -59,15 +59,15 @@ where
 
 pub trait VkSurfaceBuild {
     fn build_vk_surface(
-        self, events_loop: &EventsLoop, instance: Arc<Instance>,
+        self, event_loop: &EventLoop, instance: Arc<Instance>,
     ) -> Result<Arc<Surface<winit::Window>>, CreationError>;
 }
 
 impl VkSurfaceBuild for WindowBuilder {
     fn build_vk_surface(
-        self, events_loop: &EventsLoop, instance: Arc<Instance>,
+        self, event_loop: &EventLoop, instance: Arc<Instance>,
     ) -> Result<Arc<Surface<winit::Window>>, CreationError> {
-        let window = self.build(events_loop)?;
+        let window = self.build(event_loop)?;
         Ok(create_vk_surface(window, instance)?)
     }
 }
