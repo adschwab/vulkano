@@ -12,8 +12,9 @@ use vulkano::instance::Instance;
 use vulkano::instance::InstanceExtensions;
 use vulkano::swapchain::Surface;
 use vulkano::swapchain::SurfaceCreationError;
-use winit::{EventLoop, WindowBuilder};
-use winit::CreationError as WindowCreationError;
+use winit::event_loop::EventLoop;
+use winit::window::WindowBuilder;
+use winit::error::OsError as WindowCreationError;
 
 #[cfg(target_os = "macos")]
 use cocoa::appkit::{NSView, NSWindow};
@@ -52,21 +53,21 @@ pub fn create_vk_surface<W>(
     window: W, instance: Arc<Instance>
 ) -> Result<Arc<Surface<W>>, SurfaceCreationError>
 where
-    W: SafeBorrow<winit::Window>,
+    W: SafeBorrow<winit::window::Window>,
 {
     unsafe { winit_to_surface(instance, window) }
 }
 
 pub trait VkSurfaceBuild {
-    fn build_vk_surface(
-        self, event_loop: &EventLoop, instance: Arc<Instance>,
-    ) -> Result<Arc<Surface<winit::Window>>, CreationError>;
+    fn build_vk_surface<T>(
+        self, event_loop: &EventLoop<T>, instance: Arc<Instance>,
+    ) -> Result<Arc<Surface<winit::window::Window>>, CreationError>;
 }
 
 impl VkSurfaceBuild for WindowBuilder {
-    fn build_vk_surface(
-        self, event_loop: &EventLoop, instance: Arc<Instance>,
-    ) -> Result<Arc<Surface<winit::Window>>, CreationError> {
+    fn build_vk_surface<T>(
+        self, event_loop: &EventLoop<T>, instance: Arc<Instance>,
+    ) -> Result<Arc<Surface<winit::window::Window>>, CreationError> {
         let window = self.build(event_loop)?;
         Ok(create_vk_surface(window, instance)?)
     }
@@ -121,7 +122,7 @@ impl From<WindowCreationError> for CreationError {
 }
 
 #[cfg(target_os = "android")]
-unsafe fn winit_to_surface<W: SafeBorrow<winit::Window>>(
+unsafe fn winit_to_surface<W: SafeBorrow<winit::window::Window>>(
     instance: Arc<Instance>, win: W,
 ) -> Result<Arc<Surface<W>>, SurfaceCreationError> {
     use winit::os::android::WindowExt;
@@ -129,7 +130,7 @@ unsafe fn winit_to_surface<W: SafeBorrow<winit::Window>>(
 }
 
 #[cfg(all(unix, not(target_os = "android"), not(target_os = "macos")))]
-unsafe fn winit_to_surface<W: SafeBorrow<winit::Window>>(
+unsafe fn winit_to_surface<W: SafeBorrow<winit::windowWindow>>(
     instance: Arc<Instance>, win: W,
 ) -> Result<Arc<Surface<W>>, SurfaceCreationError> {
     use winit::os::unix::WindowExt;
@@ -161,7 +162,7 @@ unsafe fn winit_to_surface<W: SafeBorrow<winit::Window>>(
 }
 
 #[cfg(target_os = "windows")]
-unsafe fn winit_to_surface<W: SafeBorrow<winit::Window>>(
+unsafe fn winit_to_surface<W: SafeBorrow<winit::window::Window>>(
     instance: Arc<Instance>, win: W,
 ) -> Result<Arc<Surface<W>>, SurfaceCreationError> {
     use winit::os::windows::WindowExt;
@@ -174,12 +175,12 @@ unsafe fn winit_to_surface<W: SafeBorrow<winit::Window>>(
 }
 
 #[cfg(target_os = "macos")]
-unsafe fn winit_to_surface<W: SafeBorrow<winit::Window>>(
+unsafe fn winit_to_surface<W: SafeBorrow<winit::window::Window>>(
     instance: Arc<Instance>, win: W,
 ) -> Result<Arc<Surface<W>>, SurfaceCreationError> {
-    use winit::os::macos::WindowExt;
+    use winit::platform::macos::WindowExtMacOS;
 
-    let wnd: cocoa_id = mem::transmute(win.borrow().get_nswindow());
+    let wnd: cocoa_id = mem::transmute(win.borrow().ns_window());
 
     let layer = CoreAnimationLayer::new();
 
@@ -193,7 +194,7 @@ unsafe fn winit_to_surface<W: SafeBorrow<winit::Window>>(
     view.setLayer(mem::transmute(layer.as_ref())); // Bombs here with out of memory
     view.setWantsLayer(YES);
 
-    Surface::from_macos_moltenvk(instance, win.borrow().get_nsview() as *const (), win)
+    Surface::from_macos_moltenvk(instance, win.borrow().ns_view() as *const (), win)
 }
 
 /// An alternative to `Borrow<T>` with the requirement that all calls to
